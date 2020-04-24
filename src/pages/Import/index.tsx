@@ -18,47 +18,48 @@ interface FileProps {
 }
 
 const Import: React.FC = () => {
-  const [uploadedFiles, setUploadedFiles] = useState<FileProps[]>([]);
+  const [files, setFiles] = useState<FileProps[]>([]);
 
   async function handleUpload(): Promise<void> {
     const data = new FormData();
 
-    uploadedFiles.forEach((item) => data.append(item.name, item.file));
+    files.forEach((file) => data.append(file.name, file.file));
 
     try {
       await api.post('/transactions/import', data, {
         headers: { 'content-type': 'multipart/form-data' },
       });
+      setFiles([]);
     } catch (err) {
       console.error(err.response.error);
     }
   }
 
-  function submitFile(files: File[]): void {
-    const newFiles = files.map((item) => ({
+  function submitFile(uploadedFiles: File[]): void {
+    const newFiles = uploadedFiles.map((item) => ({
       file: item,
       name: item.name,
       readableSize: filesize(item.size),
     })) as FileProps[];
-    setUploadedFiles([...uploadedFiles, ...newFiles]);
+    setFiles([...files, ...newFiles]);
   }
 
   return (
     <>
       <Header size="small" />
       <Container>
-        <Title>Import transactions</Title>
+        <Title>Importar uma transação</Title>
         <ImportFileContainer>
           <Upload onUpload={submitFile} />
-          {!!uploadedFiles.length && <FileList files={uploadedFiles} />}
+          {!!files.length && <FileList files={files} />}
 
           <Footer>
             <p>
               <img src={alert} alt="Alert" />
-              We only allow CSV files.
+              Permitido apenas arquivos CSV
             </p>
             <button onClick={handleUpload} type="button">
-              Import
+              Enviar
             </button>
           </Footer>
         </ImportFileContainer>
