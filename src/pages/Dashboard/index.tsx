@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/camelcase */
 import React, { useState, useEffect } from 'react';
 
 import income from '../../assets/income.svg';
@@ -12,6 +13,15 @@ import formatValue from '../../utils/formatValue';
 
 import { Container, CardContainer, Card, TableContainer } from './styles';
 
+interface TransactionFromAPI {
+  id: string;
+  title: string;
+  value: number;
+  type: 'income' | 'outcome';
+  category: { title: string };
+  created_at: string;
+}
+
 interface Transaction {
   id: string;
   title: string;
@@ -23,21 +33,52 @@ interface Transaction {
   created_at: Date;
 }
 
+interface BalanceFromAPI {
+  income: number;
+  outcome: number;
+  total: number;
+}
+
 interface Balance {
   income: string;
   outcome: string;
   total: string;
 }
 
+const formatTransactions: (transaction: TransactionFromAPI) => Transaction = (
+  transaction,
+) => ({
+  ...transaction,
+  created_at: new Date(transaction.created_at),
+  formattedValue: `${transaction.type === 'outcome' ? '- ' : ''}${formatValue(
+    transaction.value,
+  )}`,
+  formattedDate: new Date(transaction.created_at).toDateString(),
+});
+
+const formatBalance: (balance: BalanceFromAPI) => Balance = (balance) => ({
+  income: formatValue(balance.income),
+  outcome: formatValue(balance.outcome),
+  total: formatValue(balance.total),
+});
+
 const Dashboard: React.FC = () => {
-  // const [transactions, setTransactions] = useState<Transaction[]>([]);
-  // const [balance, setBalance] = useState<Balance>({} as Balance);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [balance, setBalance] = useState<Balance>({} as Balance);
 
   useEffect(() => {
     async function loadTransactions(): Promise<void> {
-      // TODO
+      const {
+        data: { transactions: apiTransactions, balance: apiBalance },
+      } = (await api.get('transactions')) as {
+        data: {
+          transactions: TransactionFromAPI[];
+          balance: BalanceFromAPI;
+        };
+      };
+      setTransactions(apiTransactions.map(formatTransactions));
+      setBalance(formatBalance(apiBalance));
     }
-
     loadTransactions();
   }, []);
 
@@ -48,24 +89,24 @@ const Dashboard: React.FC = () => {
         <CardContainer>
           <Card>
             <header>
-              <p>Entradas</p>
+              <p>Balance</p>
               <img src={income} alt="Income" />
             </header>
-            <h1 data-testid="balance-income">R$ 5.000,00</h1>
+            <h1 data-testid="balance-income">{balance.income}</h1>
           </Card>
           <Card>
             <header>
-              <p>Saídas</p>
+              <p>Deductions</p>
               <img src={outcome} alt="Outcome" />
             </header>
-            <h1 data-testid="balance-outcome">R$ 1.000,00</h1>
+            <h1 data-testid="balance-outcome">{balance.outcome}</h1>
           </Card>
           <Card total>
             <header>
               <p>Total</p>
               <img src={total} alt="Total" />
             </header>
-            <h1 data-testid="balance-total">R$ 4000,00</h1>
+            <h1 data-testid="balance-total">{balance.total}</h1>
           </Card>
         </CardContainer>
 
@@ -73,26 +114,26 @@ const Dashboard: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th>Título</th>
-                <th>Preço</th>
-                <th>Categoria</th>
-                <th>Data</th>
+                <th>Title</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Date</th>
               </tr>
             </thead>
 
             <tbody>
-              <tr>
-                <td className="title">Computer</td>
-                <td className="income">R$ 5.000,00</td>
-                <td>Sell</td>
-                <td>20/04/2020</td>
-              </tr>
-              <tr>
-                <td className="title">Website Hosting</td>
-                <td className="outcome">- R$ 1.000,00</td>
-                <td>Hosting</td>
-                <td>19/04/2020</td>
-              </tr>
+              {transactions.map((transaction) => (
+                <tr key={transaction.id}>
+                  <td className="title">{transaction.title}</td>
+                  {transaction.type === 'income' ? (
+                    <td className="income">{transaction.formattedValue}</td>
+                  ) : (
+                    <td className="outcome">{transaction.formattedValue}</td>
+                  )}
+                  <td>{transaction.category.title}</td>
+                  <td>{transaction.formattedDate}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </TableContainer>

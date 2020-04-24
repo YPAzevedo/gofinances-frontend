@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
 
 import filesize from 'filesize';
 
@@ -20,29 +19,35 @@ interface FileProps {
 
 const Import: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<FileProps[]>([]);
-  const history = useHistory();
 
   async function handleUpload(): Promise<void> {
-    // const data = new FormData();
+    const data = new FormData();
 
-    // TODO
+    uploadedFiles.forEach((item) => data.append(item.name, item.file));
 
     try {
-      // await api.post('/transactions/import', data);
+      await api.post('/transactions/import', data, {
+        headers: { 'content-type': 'multipart/form-data' },
+      });
     } catch (err) {
-      // console.log(err.response.error);
+      console.error(err.response.error);
     }
   }
 
   function submitFile(files: File[]): void {
-    // TODO
+    const newFiles = files.map((item) => ({
+      file: item,
+      name: item.name,
+      readableSize: filesize(item.size),
+    })) as FileProps[];
+    setUploadedFiles([...uploadedFiles, ...newFiles]);
   }
 
   return (
     <>
       <Header size="small" />
       <Container>
-        <Title>Importar uma transação</Title>
+        <Title>Import transactions</Title>
         <ImportFileContainer>
           <Upload onUpload={submitFile} />
           {!!uploadedFiles.length && <FileList files={uploadedFiles} />}
@@ -50,10 +55,10 @@ const Import: React.FC = () => {
           <Footer>
             <p>
               <img src={alert} alt="Alert" />
-              Permitido apenas arquivos CSV
+              We only allow CSV files.
             </p>
             <button onClick={handleUpload} type="button">
-              Enviar
+              Import
             </button>
           </Footer>
         </ImportFileContainer>
